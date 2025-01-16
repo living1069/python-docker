@@ -17,15 +17,18 @@ class Registry:
         hostname: str = "https://registry-1.docker.io",
         username: str = None,
         password: str = None,
+        proxy: str = None
     ):
         self.hostname = hostname
         self.username = username
         self.password = password
         self.detect_authentication()
         self.session = requests.Session()
+        if proxy is not None:
+            self.proxies = {"http": proxy, "https": proxy}
 
     def detect_authentication(self):
-        response = requests.get(f"{self.hostname}/v2/")
+        response = requests.get(f"{self.hostname}/v2/", proxies = self.proxies)
         if "www-authenticate" in response.headers:
             auth_scheme, parameters = response.headers["www-authenticate"].split(" ", 1)
             self.authentication_type = auth_scheme
@@ -73,7 +76,7 @@ class Registry:
         if query:
             base_url += "?" + "&".join(f"{key}={value}" for key, value in query.items())
 
-        response = requests.get(base_url, headers=headers)
+        response = requests.get(base_url, headers=headers, proxies = self.proxies)
         if response.status_code != 200:
             raise ValueError(f"token authentication failed for {base_url}")
 
@@ -90,7 +93,7 @@ class Registry:
             raise ValueError("failed to authenticate")
 
     def authenticated(self):
-        response = self.session.get(f"{self.hostname}/v2/")
+        response = self.session.get(f"{self.hostname}/v2/", proxies = self.proxies)
         return response.status_code != 401
 
     def request(
